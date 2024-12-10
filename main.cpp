@@ -1,10 +1,12 @@
-#include<IOstream>
+#include <iostream>
+#include <string>
 #include <fstream>
+#include "json.hpp"
+
 using namespace std;
+using json = nlohmann::json;
 
-
-class User{
-
+class User {
     struct UserDetails {
         int id;
         string name;
@@ -14,10 +16,9 @@ class User{
     UserDetails UserDetails;
 
 public:
-    User(string name, string pass){
+    User(string name, string pass) {
         UserDetails.name = name;
         UserDetails.pass = pass;
-
     }
 
     void printUserDetails() const {
@@ -27,48 +28,39 @@ public:
 
     friend void checkuser();
 
-    void savejson(){
-        string json_data =
-        R"(
-{
-"name": "John Doe",
-"age": 30,
-"is_admin": true,
-"address": {
-    "street": "123 Main St",
-    "city": "New York",
-    "zip": "10001"
-    }
-}
-        )";
+    void savejson() {
+        const string file_name = "user_data.json";
+        ifstream infile(file_name);
+        if (infile.good()) {
+            cout << "File '" << file_name << "' already exists. Skipping write operation." << endl;
+            return; // Replace break with return
+        }
 
+        // Create a JSON object
+                json json_data = {
+                  {"Users", {{
+                    {"name", UserDetails.name},
+                    {"password", UserDetails.pass},
+                  }}},
+                  {"is_admin", false}
+                };
 
-        ofstream file("user_data.json");
+        // Write JSON data to a file
+        ofstream file(file_name);
         if (file.is_open()) {
-        // Write JSON string to the file
-        file << json_data;
-
-        // Close the file
-        file.close();
-
+            file << json_data.dump(4); // Serialize with 4-space indentation
+            file.close();
             cout << "JSON file saved successfully!" << endl;
         } else {
             cerr << "Could not open the file for writing!" << endl;
         }
-
-
-        cout << json_data << endl;
-
     }
-
 };
 
-
-int main(){
+int main() {
     User obj("test", "password");
     obj.printUserDetails();
     obj.savejson();
+    return 0; // Add return statement
 }
-
-
 
