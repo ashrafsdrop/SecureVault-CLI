@@ -1,0 +1,9 @@
+{
+    "Users": [
+        {
+            "name": "test",
+            "password": "password"
+        }
+    ],
+    "is_admin": false
+}
