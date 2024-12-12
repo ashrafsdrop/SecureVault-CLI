@@ -3,6 +3,10 @@
         {
             "name": "test",
             "password": "password"
+        },
+        {
+            "name": "gandu",
+            "password": "5d0945e3093680a1cf56537dcf8a8e9560d1b1f090d32c10cccecfc32e02b7bb"
         }
     ],
     "is_admin": false
