@@ -10,57 +10,6 @@
 using namespace std;
 using json = nlohmann::json;
 
-class User {
-    struct UserDetails {
-        int id;
-        string name;
-        string pass;
-    };
-
-    UserDetails UserDetails;
-
-public:
-    User(string name, string pass) {
-        UserDetails.name = name;
-        UserDetails.pass = pass;
-    }
-
-    void printUserDetails() const {
-        cout << "Name: " << UserDetails.name << endl;
-        cout << "Password: " << UserDetails.pass << endl;
-    }
-
-    friend void checkuser();
-
-    void savejson() {
-        const string file_name = "user_data.json";
-        ifstream infile(file_name);
-        if (infile.good()) {
-            cout << "File '" << file_name << "' already exists. Skipping write operation." << endl;
-            return; // Replace break with return
-        }
-
-        // Create a JSON object
-                json json_data = {
-                  {"Users", {{
-                    {"name", UserDetails.name},
-                    {"password", UserDetails.pass},
-                  }}},
-                  {"is_admin", false}
-                };
-
-        // Write JSON data to a file
-        ofstream file(file_name);
-        if (file.is_open()) {
-            file << json_data.dump(4); // Serialize with 4-space indentation
-            file.close();
-            cout << "JSON file saved successfully!" << endl;
-        } else {
-            cerr << "Could not open the file for writing!" << endl;
-        }
-    }
-};
-
 string sha256(const string str){
   unsigned char hash[SHA256_DIGEST_LENGTH];
 
@@ -77,13 +26,95 @@ string sha256(const string str){
   return ss.str();
 }
 
+class User {
+    struct UserDetails {
+        int id;
+        string name;
+        string pass;
+    };
+
+    UserDetails userDetails;
+
+public:
+    User(string name, string pass) {
+        userDetails.name = name;
+        userDetails.pass = pass;
+    }
+
+    User() {}
+
+    void printUser () const {
+        cout << "Name: " << userDetails.name << endl;
+        cout << "Password: " << userDetails.pass << endl;
+    }
+
+    friend void checkuser();
+
+    void savejson() {
+        const string file_name = "user_data.json";
+        ifstream infile(file_name);
+        json json_data;
+
+        if (infile.good()) {
+            infile >> json_data;
+            json_data["Users"].push_back({
+                {"name", userDetails.name},
+                {"password", sha256(userDetails.pass)},
+            });
+        } else {
+            json_data = {
+                {"Users", {{
+                    {"name", userDetails.name},
+                    {"password", sha256(userDetails.pass)},
+                }}},
+                {"is_admin", false}
+            };
+        }
+
+        
+        ofstream file(file_name);
+        if (file.is_open()) {
+            file << json_data.dump(4);
+            file.close();
+            cout << "JSON file saved successfully!" << endl;
+        } else {
+            cerr << "Could not open the file for writing!" << endl;
+        }
+    }
+
+    void signup() {
+        string name, pass, confirmPass;
+        cout << "Enter your name: ";
+        cin >> name;
+        cout << "Enter your password: ";
+        cin >> pass;
+        cout << "Confirm your password: ";
+        cin >> confirmPass;
+
+        if (pass == confirmPass) {
+            User user(name, pass);
+            user.savejson();
+        } else {
+            cout << "Passwords do not match. Please try again." << endl;
+        }
+    }
+};
+
 int main(){
-    User obj("test", "password");
-    obj.printUserDetails();
-    obj.savejson();
+    int choice;
+    cout << "1. Signup" << endl;
+    cout << "2. Login" << endl;
+    cout << "Enter your choice: ";
+    cin >> choice;
 
-    string data = "Hello, world!";
-    cout << "SHA-256: " << sha256(data) << endl;
-    return 0; // Add return statement
+    if (choice == 1) {
+        User user;
+        user.signup();
+    } else if (choice == 2) {
+        // Implement login functionality here
+    } else {
+        cout << "Invalid choice. Please try again." << endl;
+    }
+
+    return 0;
 }
-
