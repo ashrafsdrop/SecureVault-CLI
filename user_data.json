@@ -1,4 +1,12 @@
 {
+    "Passwords": [
+        {
+            "app": "agpp",
+            "passwd": "dfsdf",
+            "url": "www.ga.com",
+            "username": "gandu"
+        }
+    ],
     "Users": [
         {
             "name": "test",
