@@ -1,29 +1,31 @@
-#define OPENSSL_API_COMPAT 0x10100000L
 #include <iostream>
 #include <string>
 #include <fstream>
 #include "json.hpp"
-#include "sha.h"
 #include <iomanip>
 #include <sstream>
+#include <cryptlib.h>
+#include <sha.h>
+#include <hex.h>
 
 using namespace std;
 using json = nlohmann::json;
 
 string sha256(const string str) {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
+  string hash;
+  CryptoPP::SHA256 sha256;
 
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, str.c_str(), str.size());
-    SHA256_Final(hash, &sha256);
+  CryptoPP::StringSource(str, true,
+        new CryptoPP::HashFilter(sha256,
+            new CryptoPP::HexEncoder(
+                new CryptoPP::StringSink(hash), // Sink to store the result
+                false // Do not convert to uppercase
+            )
+        )
+    );
 
-    stringstream ss;
+  return hash;
 
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-        ss << hex << setw(2) << setfill('0') << static_cast<int>(hash[i]);
-    }
-    return ss.str();
 }
 
 class User {
