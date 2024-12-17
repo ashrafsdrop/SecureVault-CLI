@@ -5,6 +5,7 @@ Extract the files to a directory, e.g., C:\cryptopp.
 
 inside C:\cryptopp 
 g++ -std=c++17 -DCRYPTOPP_DISABLE_ASM -O2 -c *.cpp
+
 ar rcs libcryptlib.a *.o
 
 
