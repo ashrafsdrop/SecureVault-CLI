@@ -9,4 +9,4 @@ ar rcs libcryptlib.a *.o
 
 
 run 
-g++ -std=c++17 -DCRYPTOPP_DISABLE_ASM -I C:\cryptopp -L C:\cryptopp -o sha256_example main.cpp -lcryptlib
+g++ -std=c++11 -I C:\cryptopp -L C:\cryptopp -o main main.cpp -lcryptlib
