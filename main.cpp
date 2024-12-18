@@ -2,30 +2,15 @@
 #include <string>
 #include <fstream>
 #include "json.hpp"
+#include "picosha2.h" // Include the picosha2 header file
 #include <iomanip>
 #include <sstream>
-#include <cryptlib.h>
-#include <sha.h>
-#include <hex.h>
 
 using namespace std;
 using json = nlohmann::json;
 
-string sha256(const string str) {
-  string hash;
-  CryptoPP::SHA256 sha256;
-
-  CryptoPP::StringSource(str, true,
-        new CryptoPP::HashFilter(sha256,
-            new CryptoPP::HexEncoder(
-                new CryptoPP::StringSink(hash), // Sink to store the result
-                false // Do not convert to uppercase
-            )
-        )
-    );
-
-  return hash;
-
+string sha256(const string& str) {
+    return picosha2::hash256_hex_string(str);
 }
 
 class User {
@@ -47,7 +32,7 @@ public:
 
     User() {}
 
-    void printUser  () const {
+    void printUser() const {
         cout << "Name: " << userDetails.name << endl;
         cout << "Password: " << userDetails.pass << endl;
     }
@@ -94,8 +79,10 @@ public:
         cin >> confirmPass;
 
         if (pass == confirmPass) {
-            User user(name, pass);
-            user.savejson();
+            userDetails.name = name;
+            userDetails.pass = pass;
+            savejson();
+            cout << "Signup successful! You can now log in." << endl;
         } else {
             cout << "Passwords do not match. Please try again." << endl;
         }
@@ -107,25 +94,52 @@ public:
         cin >> name;
         cout << "Enter your password: ";
         cin >> pass;
+
         const string file_name = "user_data.json";
         ifstream infile(file_name);
         json json_data;
+
+        if (!infile.good()) {
+            cout << "No user data found. Please sign up first." << endl;
+            return false;
+        }
+
         infile >> json_data;
         infile.close();
 
-        for (int i = 0; i < json_data["Users"].size(); i++) {
-            if (name == json_data["Users"][i]["name"] && sha256(pass) == json_data["Users"][i]["password"]) {
-                cout << "Login successful!" << endl;
-                userDetails.current_user = name;
-                userDetails.is_loggedin = true;
-                return true; // Successful login
+        // Debug: Print the entire loaded JSON data
+        // cout << "Debug: Loaded JSON data:\n" << json_data.dump(4) << endl;
+
+        for (int i = 0; i < json_data["Users"].size(); ++i) {
+            // Access the current user
+            auto user = json_data["Users"][i];
+
+            // Compare the entered name with the current user's name
+            if (name == user["name"]) {
+                // Hash the entered password
+                string hashedPassword = sha256(pass);
+                if (hashedPassword == user["password"]) {
+                    cout << "Login successful!" << endl;
+                    userDetails.current_user = name;
+                    userDetails.is_loggedin = true;
+                    return true;
+                } else {
+                    cout << "Incorrect password." << endl;
+                    return false;
+                }
             }
         }
-        cout << "Invalid username or password." << endl;
-        return false; // Failed login
+
+        // If no matching user was found
+        cout << "User not found." << endl;
+        return false;
+
+
     }
 
-    string getCurrentUser  () const {
+
+
+    string getCurrentUser() const {
         return userDetails.current_user;
     }
 
@@ -181,7 +195,7 @@ int main() {
     User user;
 
     while (true) {
-        cout << "1. Signup" << endl;
+        cout << "\n1. Signup" << endl;
         cout << "2. Login" << endl;
         cout << "3. Save a password" << endl;
         cout << "4. Exit" << endl;
@@ -191,7 +205,9 @@ int main() {
         if (choice == 1) {
             user.signup();
         } else if (choice == 2) {
-            user.login();
+            if (user.login()) {
+                cout << "Welcome, " << user.getCurrentUser() << "!" << endl;
+            }
         } else if (choice == 3) {
             if (!user.isLoggedIn()) {
                 cout << "You must be logged in to save a password." << endl;
@@ -208,10 +224,11 @@ int main() {
             cout << "Enter the password: ";
             cin >> password;
 
-            Passwds passwordManager(user.getCurrentUser ());
+            Passwds passwordManager(user.getCurrentUser());
             passwordManager.save_pass(app_name, password, user_url);
         } else if (choice == 4) {
-            break; // Exit the loop
+            cout << "Exiting program. Goodbye!" << endl;
+            break;
         } else {
             cout << "Invalid choice. Please try again." << endl;
         }
