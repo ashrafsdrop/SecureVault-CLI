@@ -1,17 +1,25 @@
 {
     "Passwords": [
         {
-            "app": "agpp",
-            "passwd": "dfsdf",
-            "url": "www.ga.com",
+            "app": "testing123",
+            "passwd": "7c23c2e9e6613e9ec876334a0aa6a6a4",
+            "url": "test.com",
             "username": "gandu"
+        },
+        {
+            "app": "hi",
+            "passwd": "383667bfb5f80dd5e3971dbf48336a9d",
+            "url": "hi.com",
+            "username": "gandu"
+        },
+        {
+            "app": "hi",
+            "passwd": "383667bfb5f80dd5e3971dbf48336a9d",
+            "url": "hi.com",
+            "username": "gandus"
         }
     ],
     "Users": [
-        {
-            "name": "test",
-            "password": "password"
-        },
         {
             "name": "gandu",
             "password": "5d0945e3093680a1cf56537dcf8a8e9560d1b1f090d32c10cccecfc32e02b7bb"
