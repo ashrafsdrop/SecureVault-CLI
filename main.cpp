@@ -2,7 +2,7 @@
 #include <string>
 #include <fstream>
 #include "json.hpp"
-#include "picosha2.h" // Include the picosha2 header file
+#include "picosha2.h"
 #include <iomanip>
 #include <sstream>
 #include <cstring>
@@ -40,34 +40,50 @@ public:
         cout << "Password: " << userDetails.pass << endl;
     }
 
-    void savejson() {
+    bool savejson() {
         const string file_name = "user_data.json";
         ifstream infile(file_name);
         json json_data;
 
         if (infile.good()) {
             infile >> json_data;
-            json_data["Users"].push_back({
-                {"name", userDetails.name},
-                {"password", sha256(userDetails.pass)} // Store hashed password
-            });
+            infile.close(); 
         } else {
+            
             json_data = {
-                {"Users", {{"name", userDetails.name}, {"password", sha256(userDetails.pass)}}},
+                {"Users", json::array()}, 
                 {"is_admin", false},
-                {"Passwords", json::array()} // Initialize Passwords array
+                {"Passwords", json::array()} 
             };
         }
 
+        
+        for (size_t i = 0; i < json_data["Users"].size(); ++i) {
+            if (json_data["Users"][i]["name"] == userDetails.name) {
+                cerr << " \n Error: Username already exists. Please choose another username. \n" << endl;
+                return false; 
+            }
+        }
+
+        
+        json_data["Users"].push_back({
+            {"name", userDetails.name},
+            {"password", sha256(userDetails.pass)} 
+        });
+
+        
         ofstream file(file_name);
         if (file.is_open()) {
-            file << json_data.dump(4);
+            file << json_data.dump(4); 
             file.close();
-            cout << "JSON file saved successfully!" << endl;
+            cout << "JSON file updated successfully!" << endl;
         } else {
             cerr << "Could not open the file for writing!" << endl;
         }
+
+        return true;
     }
+
 
     void signup() {
         string name, pass, confirmPass;
@@ -81,8 +97,12 @@ public:
         if (pass == confirmPass) {
             userDetails.name = name;
             userDetails.pass = pass;
-            savejson();
-            cout << "Signup successful! You can now log in." << endl;
+            bool saved = savejson();
+            if (saved) {
+                cout << "Signup successful! You can now log in." << endl;
+            } else {
+                cout << "Signup failed. Please try again." << endl;
+            }
         } else {
             cout << "Passwords do not match. Please try again." << endl;
         }
@@ -90,9 +110,9 @@ public:
 
     bool login() {
         string name, pass;
-        cout << "Enter your name: ";
+        cout << "\nEnter your name: ";
         cin >> name;
-        cout << "Enter your password: ";
+        cout << "\nEnter your password: ";
         cin >> pass;
 
         const string file_name = "user_data.json";
@@ -113,13 +133,13 @@ public:
             if (name == user["name"]) {
                 string hashedPassword = sha256(pass);
                 if (hashedPassword == user["password"]) {
-                    cout << "Login successful!" << endl;
+                    cout << "\nLogin successful!\n" << endl;
                     userDetails.current_user = name;
-                    userDetails.pass = pass;  // Store the plain password after login
+                    userDetails.pass = pass; 
                     userDetails.is_loggedin = true;
                     return true;
                 } else {
-                    cout << "Incorrect password." << endl;
+                    cout << "\nIncorrect password." << endl;
                     return false;
                 }
             }
@@ -227,7 +247,7 @@ public:
             json_data = {
                 {"Users", json::array()},
                 {"is_admin", false},
-                {"Passwords", json::array()} // Initialize the Passwords array if the file does not exist
+                {"Passwords", json::array()} 
             };
         }
 
@@ -238,7 +258,7 @@ public:
 
         json_data["Passwords"].push_back({
             {"username", users},
-            {"passwd", encrypted_pass}, // Optionally hash the password
+            {"passwd", encrypted_pass}, 
             {"app", app_name},
             {"url", user_url}
         });
@@ -267,18 +287,35 @@ public:
         infile >> json_data;
         infile.close();
 
+        cout << "\n"<<endl;
+        cout << "Showing saved passwords for the user: " << users << endl;
+        cout << "+----------------------------------------------------------------------------------------+" << endl;
+        cout << "| " << left
+            << setw(18) << "Application" << " | "
+            << setw(25) << "URL" << " | "
+            << setw(37) << "Password" << " |" << endl;
+        cout << "+----------------------------------------------------------------------------------------+" << endl;
+
         for (int i = 0; i < json_data["Passwords"].size(); ++i) {
             auto pass = json_data["Passwords"][i];
 
             if (users == pass["username"]) {
-                string encrypted_pass = pass["passwd"];
+                string app = pass["app"].get<string>();       
+                string url = pass["url"].get<string>();       
+                string encrypted_pass = pass["passwd"].get<string>();
                 string decrypted_pass = aes_decrypt(encrypted_pass, hashedPass);
-                cout << "App: " << pass["app"] << endl;
-                cout << "URL: " << pass["url"] << endl;
-                cout << "Password: " << decrypted_pass << endl;
+
+                
+                cout << "| " << left
+                << setw(18) << app << " | "
+                << setw(25) << url << " | "
+                << setw(37) << decrypted_pass << " |" << endl;
             }
         }
+        cout << "+----------------------------------------------------------------------------------------+" << endl;
+        cout << "\n"<<endl;
     }
+
 };
 
 
@@ -299,26 +336,130 @@ class singlePasswd: public Passwds{
         infile >> json_data;
         infile.close();
 
-        bool found = false; // Flag to track if a matching password is found
+        bool found = false;
+
+        cout << "+----------------------------------------------------------------------------------------+" << endl;
+        cout << "| " << left
+            << setw(18) << "Application" << " | "
+            << setw(25) << "URL" << " | "
+            << setw(37) << "Password" << " |" << endl;
+        cout << "+----------------------------------------------------------------------------------------+" << endl;
 
         for (int i = 0; i < json_data["Passwords"].size(); ++i) {
             auto pass = json_data["Passwords"][i];
 
             if (users == pass["username"]) {
                 if (app_name == pass["app"]) {
-                    string encrypted_pass = pass["passwd"];
-                    string decrypted_pass = aes_decrypt(encrypted_pass, hashedPass);
-                    cout << "App: " << pass["app"] << endl;
-                    cout << "URL: " << pass["url"] << endl;
-                    cout << "Password: " << decrypted_pass << endl;
+                    string app = pass["app"].get<string>();       
+                    string url = pass["url"].get<string>();       
+                    string encrypted_pass = pass["passwd"].get<string>(); 
+                    string decrypted_pass = aes_decrypt(encrypted_pass, hashedPass); 
+
+                    
+                    cout << "| " << left
+                        << setw(18) << app << " | "
+                        << setw(25) << url << " | "
+                        << setw(37) << decrypted_pass << " |" << endl;
+
                     found = true;
-                    break; // Exit the loop since the match is found
+                    break;
+                }
+            }
+        }
+
+        
+        cout << "+----------------------------------------------------------------------------------------+" << endl;
+
+        if (!found) {
+            cout << "No password data found for the specified app." << endl;
+        }
+    }
+
+
+
+    void update_pass_single(string hashedPass, string app_name, string new_pass) {
+        const string file_name = "user_data.json";
+        ifstream infile(file_name);
+        json json_data;
+
+        if (!infile.good()) {
+
+            cout << "\n No password data found." << endl;
+            return;
+        }
+
+        infile >> json_data;
+        infile.close();
+
+        bool found = false;
+
+        for (int i = 0; i < json_data["Passwords"].size(); ++i) {
+            auto& pass = json_data["Passwords"][i];
+
+            if (users == pass["username"]) {
+                if (app_name == pass["app"]) {
+                    string enc = aes_encrypt(new_pass, hashedPass);
+                    pass["passwd"] = enc;
+                    cout << "\n App: " << pass["app"] << endl;
+                    cout << "Password updated successfully!" << endl;
+                    found = true;
+                    break;
                 }
             }
         }
 
         if (!found) {
             cout << "No password data found for the specified app." << endl;
+        } else {
+            ofstream file(file_name);
+            if (file.is_open()) {
+                file << json_data.dump(4);
+                file.close();
+            } else {
+                cout << "Could not open the file for writing!" << endl;
+            }
+        }
+    }
+
+
+    void delete_pass_single(string hashedPass, string app_name) {
+        const string file_name = "user_data.json";
+        ifstream infile(file_name);
+        json json_data;
+
+        if (!infile.good()) {
+            cout << "No password data found." << endl;
+            return;
+        }
+
+        infile >> json_data;
+        infile.close();
+
+        bool found = false;
+
+        for (int i = 0; i < json_data["Passwords"].size(); ++i) {
+            auto pass = json_data["Passwords"][i];
+
+            if (users == pass["username"]) {
+                if (app_name == pass["app"]) {
+                    json_data["Passwords"].erase(i);
+                    cout << "\n Password deleted successfully!" << endl;
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if (!found) {
+            cout << "No password data found for the specified app." << endl;
+        } else {
+            ofstream file(file_name);
+            if (file.is_open()) {
+                file << json_data.dump(4);
+                file.close();
+            } else {
+                cout << "Could not open the file for writing!" << endl;
+            }
         }
     }
 
@@ -332,20 +473,29 @@ int main() {
     User user;
 
     while (true) {
-        cout << "\n1. Signup" << endl;
-        cout << "2. Login" << endl;
-        cout << "3. Save a password" << endl;
-        cout << "4. show all the password" << endl;
-        cout << "5. Show password for a specific app" << endl;
-        cout << "6. Exit" << endl;
-        cout << "Enter your choice: ";
+        cout << "\n" << endl;
+        cout << "+------------------------------------------------------------+" << endl;
+        cout << "|                        Main Menu                           |" << endl;
+        cout << "+------------------------------------------------------------+" << endl;
+        cout << "| 1. Signup                                                  |" << endl;
+        cout << "| 2. Login                                                   |" << endl;
+        cout << "| 3. Save a password                                         |" << endl;
+        cout << "| 4. Show all the passwords                                  |" << endl;
+        cout << "| 5. Show password for a specific app                        |" << endl;
+        cout << "| 6. Update password for a specific app                      |" << endl;
+        cout << "| 7. Delete password for a specific app                      |" << endl;
+        cout << "| 8. Exit                                                    |" << endl;
+        cout << "+------------------------------------------------------------+" << endl;
+        cout << "\nEnter your choice: ";
         cin >> choice;
 
         if (choice == 1) {
             user.signup();
         } else if (choice == 2) {
             if (user.login()) {
-                cout << "Welcome, " << user.getCurrentUser() << "!" << endl;
+                cout << "+------------------------------------------------------------+" << endl;
+                cout << "| " << left << setw(58) << ("Welcome, " + user.getCurrentUser() + "!") << " |" << endl;
+                cout << "+------------------------------------------------------------+" << endl;
             }
         } else if (choice == 3) {
             if (!user.isLoggedIn()) {
@@ -355,24 +505,23 @@ int main() {
 
             string app_name, user_url, password, master_password;
 
-            cout << "Enter your master password: ";
+            cout << "\nEnter your master password: ";
             cin >> master_password;
 
-            // Check if the master password entered matches the logged-in password
+            
             if (master_password == user.getPass()) {
-                cout << "Master password is correct." << endl;
-                cout << user.getPass() << endl;
+                cout << "\n" << endl;
 
-                string hashedPass = sha256(user.getPass());
                 cout << "Enter the application name: ";
                 cin >> app_name;
 
-                cout << "Enter the URL: ";
+                cout << "\nEnter the URL: ";
                 cin >> user_url;
 
-                cout << "Enter the password: ";
+                cout << "\nEnter the password: ";
                 cin >> password;
-
+                
+                string hashedPass = sha256(user.getPass());
                 Passwds passwordManager(user.getCurrentUser());
                 passwordManager.save_pass(app_name, password, user_url, hashedPass);
             } else {
@@ -389,14 +538,14 @@ int main() {
             cin >> master_password;
 
             if (master_password == user.getPass()) {
-                cout << "Master password is correct." << endl;
-                cout << user.getPass() << endl;
+                cout << " \n" << endl;
+                
 
                 string hashedPass = sha256(user.getPass());
                 Passwds passwordManager(user.getCurrentUser());
                 passwordManager.show_pass(hashedPass);
             } else {
-                cout << "Master password is incorrect. Please try again." << endl;
+                cout << "Master password is incorrect. Please try again. \n" << endl;
             }
         } 
         else if (choice == 5) {
@@ -410,8 +559,8 @@ int main() {
             cin >> master_password;
 
             if (master_password == user.getPass()) {
-                cout << "Master password is correct." << endl;
-                cout << user.getPass() << endl;
+                cout << "\n" << endl;
+                
 
                 string hashedPass = sha256(user.getPass());
                 string app_name;
@@ -423,8 +572,62 @@ int main() {
             } else {
                 cout << "Master password is incorrect. Please try again." << endl;
             }
-        }          
+        }
+
         else if (choice == 6) {
+            if (!user.isLoggedIn()) {
+                cout << "You must be logged in to view passwords." << endl;
+                continue;
+            }
+
+            string master_password;
+            cout << "Enter your master password: ";
+            cin >> master_password;
+
+            if (master_password == user.getPass()) {
+                cout << "\n" << endl;
+                
+
+                string hashedPass = sha256(user.getPass());
+                string app_name, new_pass;
+                cout << "Enter the application name: ";
+                cin >> app_name;
+
+                cout << "Enter the new password: ";
+                cin >> new_pass;
+
+                singlePasswd passwordManager(user.getCurrentUser());
+                passwordManager.update_pass_single(hashedPass, app_name, new_pass);
+            } else {
+                cout << "Master password is incorrect. Please try again." << endl;
+            }
+        }
+        else if (choice == 7) {
+            if (!user.isLoggedIn()) {
+                cout << "You must be logged in to view passwords." << endl;
+                continue;
+            }
+
+            string master_password;
+            cout << "Enter your master password: ";
+            cin >> master_password;
+
+            if (master_password == user.getPass()) {
+                cout << "\n" << endl;
+                
+
+                string hashedPass = sha256(user.getPass());
+                string app_name;
+                cout << "Enter the application name: ";
+                cin >> app_name;
+
+                singlePasswd passwordManager(user.getCurrentUser());
+                passwordManager.delete_pass_single(hashedPass, app_name);
+            } else {
+                cout << "Master password is incorrect. Please try again." << endl;
+            }
+        }
+        else if (choice == 8) {
             cout << "Exiting program. Goodbye!" << endl;
             break;
         } else {
