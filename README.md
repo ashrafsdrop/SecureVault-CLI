@@ -47,7 +47,9 @@ SecureVault offers :
 
 <h1 align="center">
   <br>
-  <a href="https://github.com/ashrafsdrop/SecureVault-CLI/"><img src="https://i.imgur.com/BrrG8nO.png" alt="universal-bypass"></a>
+  <a href="https://github.com/ashrafsdrop/SecureVault-CLI/"><img src="https://i.imgur.com/0m2Z66Z.png" alt="universal-bypass"></a>
+  <br>
+   <a href="https://github.com/ashrafsdrop/SecureVault-CLI/"><img src="https://i.imgur.com/g7pBHca.png" alt="universal-bypass"></a>
   <br>
   <br>
 </h1>
